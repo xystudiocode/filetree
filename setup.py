@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = "fileTreeCommand",
-    version = "0.1.0",
+    version = "0.2.0",
     package_dir={"": "src"},
     packages=find_packages(where="src"),
     install_requires = [],
@@ -15,6 +15,9 @@ setup(
     license = "MIT",
     url = "https://github.com/xystudio889/",
     entry_points = {
+        "console_scripts": [
+            "ft = ft.__main__:main",
+        ]
     },
     classifiers=[
         "Programming Language :: Python :: 3",
