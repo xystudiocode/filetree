@@ -11,7 +11,7 @@ import subprocess
 import winreg
 import ctypes
 
-__version__ = '1.1.0'
+__version__ = '1.1.1'
 
 colorama.init(autoreset=True)
 
@@ -101,7 +101,10 @@ def main():
     if len(sys.argv) == 1 or sys.argv[1] in ['-h', '--help']:
         parser.print_help()
         sys.exit(0)
-
+        
+    if len(sys.argv) == 2 and sys.argv[1] not in ['reg', 'new', 'open']:
+        sys.argv.insert(1, 'open')
+    
     args = parser.parse_args()
 
     if args.command == 'open':
@@ -144,11 +147,11 @@ def main():
         if args.unregister:
             # 注销右键菜单
             unreg()
-            input(f'{colorama.Fore.YELLOW}Unregister successfully.Now you can uninstall filetree tools.Path:{os.path.dirname(__file__)}')
+            input(f'{colorama.Fore.YELLOW}Unregister successfully.Now you can uninstall filetree tools. Path: {os.path.dirname(__file__)}')
         elif args.register:
             # 注册右键菜单
             writekey()
-            with open('Initialized', 'w') as f:
+            with open(os.path.join(os.path.dirname(__file__), 'Initialized'), 'w') as f:
                 pass
             input(f'{colorama.Fore.YELLOW}Register successfully.Now you can use filetree tools.')
                 
@@ -238,9 +241,10 @@ def controller(file_path):
     
     ft_path = os.path.join(temp_path, list(data.keys())[0])
     
-    print(f'{colorama.Fore.YELLOW}Filetree{colorama.Fore.RESET} - {colorama.Fore.GREEN}1.0.0')
+    print(f'{colorama.Fore.YELLOW}Filetree{colorama.Fore.RESET} - {colorama.Fore.GREEN}{__version__}')
     print(f'{colorama.Fore.CYAN}File path is at: {colorama.Fore.YELLOW}{ft_path}')
     print(f'{colorama.Fore.GREEN}Press Ctrl+C to exit.')
+    print(f'{colorama.Fore.RED}Please do not close this window, you must press Ctrl+C to exit, or the temporary directory will not be saved completely.')
     
     def main_range():
         try:
@@ -330,6 +334,10 @@ def writekey():
         key = winreg.CreateKey(winreg.HKEY_CLASSES_ROOT, r'fileTree.object\defaultIcon')
         winreg.SetValueEx(key, '', 0, winreg.REG_SZ, os.path.join(os.path.dirname(__file__), 'res', 'fticon.ico'))
         
+        # HKEY_CLASSES_ROOT\fileTree.object\shell\open\command
+        key = winreg.CreateKey(winreg.HKEY_CLASSES_ROOT, r'fileTree.object\shell\open\command')
+        winreg.SetValueEx(key, '', 0, winreg.REG_SZ, f'ftree open "%1"')
+        
         # 安装信息
         key = winreg.CreateKey(
             winreg.HKEY_LOCAL_MACHINE,
@@ -365,23 +373,21 @@ def unreg():
     '''
     remove_from_path_permanent(os.path.dirname(__file__))
     # 删除注册表
-    winreg.DeleteKey(winreg.HKEY_CLASSES_ROOT, r'*\shell\FileTreeCommand')
-    winreg.DeleteKey(winreg.HKEY_CLASSES_ROOT, r'Directory\shell\FileTreeCommand')
-    winreg.DeleteKey(winreg.HKEY_CLASSES_ROOT, r'AllFilesystemObjects\shell\FileTreeCommand')
-    winreg.DeleteKey(winreg.HKEY_CLASSES_ROOT, r'.ft\OpenWithProgids')
-    winreg.DeleteKey(winreg.HKEY_CLASSES_ROOT, r'.ft')
-    winreg.DeleteKey(winreg.HKEY_CLASSES_ROOT, r'fileTree.object\defaultIcon')
-    winreg.DeleteKey(winreg.HKEY_CLASSES_ROOT, r'fileTree.object')
-    winreg.DeleteKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\filetree')
-    winreg.DeleteKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\filetree')
-    winreg.DeleteKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\CommandStore\shell\FileTreeOpen\Command')
-    winreg.DeleteKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\CommandStore\shell\FileTreeOpen')
-    winreg.DeleteKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\CommandStore\shell\FileTreeMake\Command')
-    winreg.DeleteKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\CommandStore\shell\FileTreeMake')
-    winreg.DeleteKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\CommandStore\shell\FileTreeScattered\Command')
-    winreg.DeleteKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\CommandStore\shell\FileTreeScattered')
+    os.system(r'reg delete "HKEY_CLASSES_ROOT\*\shell\FileTreeCommand" /f')
+    os.system(r'reg delete "HKEY_CLASSES_ROOT\Directory\shell\FileTreeCommand" /f')
+    os.system(r'reg delete "HKEY_CLASSES_ROOT\AllFilesystemObjects\shell\FileTreeCommand" /f')
+    os.system(r'reg delete "HKEY_CLASSES_ROOT\.ft" /f')
+    os.system(r'reg delete "HKEY_CLASSES_ROOT\fileTree.object" /f')
+    os.system(r'reg delete "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\CommandStore\shell\FileTreeOpen" /f')
+    os.system(r'reg delete "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\CommandStore\shell\FileTreeMake" /f')
+    os.system(r'reg delete "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\CommandStore\shell\FileTreeScattered" /f')
+    os.system(r'reg delete "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.ft" /f')
+    os.system(r'reg delete "HKEY_CLASSES_ROOT\Applications\ftree.exe" /f')
+    os.system(r'reg delete "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\filetree" /f')
+    os.system(r'reg delete "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\filetree" /f')
+    
     # 删除初始化完成文件
-    os.remove('Initialized')
+    os.remove(os.path.join(os.path.dirname(__file__), 'Initialized'))
     
 def remove_from_path_permanent(dir_to_remove):
     """
@@ -416,11 +422,11 @@ def is_admin():
         return False
 
 if __name__ == '__main__':
-    if not os.path.exists('Initialized'):
+    if not os.path.exists(os.path.join(os.path.dirname(__file__), 'Initialized')):
         if not is_admin():
             run_as_admin('ftree.py', 'ftree.exe')
             sys.exit(0)
         writekey()
-        with open('Initialized', 'w') as f:
+        with open(os.path.join(os.path.dirname(__file__), 'Initialized'), 'w') as f:
             pass
     main()
